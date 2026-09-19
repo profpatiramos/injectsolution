@@ -1,6 +1,6 @@
 export const ENV = {
   bootstrapAdminEmail: (process.env.BOOTSTRAP_ADMIN_EMAIL ?? "vpramos85@gmail.com").trim().toLowerCase(),
-  appId: process.env.VITE_APP_ID ?? "",
+  appId: process.env.VITE_APP_ID ?? "injectsolution",
   cookieSecret: process.env.JWT_SECRET ?? "",
   databaseUrl: process.env.DATABASE_URL ?? "",
   oAuthServerUrl: process.env.OAUTH_SERVER_URL ?? "",

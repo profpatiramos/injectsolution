@@ -2,6 +2,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { TrpcContext } from "./_core/context";
 
 vi.mock("./db", () => ({
+  getUserById: vi.fn(),
   addPhoto: vi.fn(),
   assertPhotoUploadAllowed: vi.fn(),
   addWorkspaceMember: vi.fn(),
@@ -27,6 +28,9 @@ vi.mock("./db", () => ({
 }));
 
 vi.mock("./storage", () => ({ storagePut: vi.fn() }));
+vi.mock("./supabase", () => ({ generateAccessLink: vi.fn() }));
+import { generateAccessLink } from "./supabase";
+import { getUserById } from "./db";
 
 import { getOrderDetail, listOrders, startSeparation, assertPhotoUploadAllowed, createOrder } from "./db";
 import { storagePut } from "./storage";
@@ -54,6 +58,24 @@ function contextFor(userId: number, role: "user" | "admin" | "separador" = "user
 
 describe("isolamento por usuário nas rotas de pedidos", () => {
   beforeEach(() => vi.clearAllMocks());
+
+  it("funcionário não pode gerar links de acesso", async () => {
+    await expect(appRouter.createCaller(contextFor(41, "separador", 10)).admin.accessLink({ userId: 10 })).rejects.toMatchObject({ code: "FORBIDDEN" });
+    expect(generateAccessLink).not.toHaveBeenCalled();
+  });
+
+  it.each([{ id: 20, workspaceOwnerId: 99, disabledAt: null }, { id: 20, workspaceOwnerId: 10, disabledAt: new Date() }])("bloqueia links para outra equipe ou acesso revogado", async member => {
+    vi.mocked(getUserById).mockResolvedValue({ ...member, email: "private@example.com" } as never);
+    await expect(appRouter.createCaller(contextFor(41, "admin", 10)).admin.accessLink({ userId: 20 })).rejects.toMatchObject({ code: "NOT_FOUND" });
+    expect(generateAccessLink).not.toHaveBeenCalled();
+  });
+
+  it("gera link somente para o e-mail registrado na própria equipe", async () => {
+    vi.mocked(getUserById).mockResolvedValue({ id: 20, workspaceOwnerId: 10, disabledAt: null, email: "employee@example.com" } as never);
+    vi.mocked(generateAccessLink).mockResolvedValue({ accessLink: "https://auth.example/one-time" });
+    await appRouter.createCaller(contextFor(41, "admin", 10)).admin.accessLink({ userId: 20 });
+    expect(generateAccessLink).toHaveBeenCalledWith("employee@example.com");
+  });
 
   it.each(["user", "separador"] as const)("bloqueia leitura sem acesso à equipe: %s", async role => {
     const caller = appRouter.createCaller(contextFor(41, role));

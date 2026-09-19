@@ -1,7 +1,8 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const state = vi.hoisted(() => ({ rows: [] as unknown[][], writes: [] as unknown[], locks: 0 }));
-vi.mock("drizzle-orm/mysql2", () => {
+vi.mock("postgres", () => ({ default: vi.fn() }));
+vi.mock("drizzle-orm/postgres-js", () => {
   const db: any = {
     transaction: async (callback: (tx: any) => unknown) => callback(db),
     select: () => {
@@ -10,14 +11,14 @@ vi.mock("drizzle-orm/mysql2", () => {
       return chain;
     },
     update: () => ({ set: (value: unknown) => ({ where: async () => { state.writes.push(value); } }) }),
-    insert: () => ({ values: (value: unknown) => { state.writes.push(value); return { $returningId: async () => [{ id: 9 }], then: (resolve: any) => Promise.resolve().then(resolve) }; } }),
+    insert: () => ({ values: (value: unknown) => { state.writes.push(value); return { returning: async () => [{ id: 9 }], then: (resolve: any) => Promise.resolve().then(resolve) }; } }),
     delete: () => ({ where: async () => { state.writes.push("delete"); } }),
   };
   return { drizzle: () => db };
 });
 import { addPhoto, finalizeOrder, markAllItems, removePhoto, startSeparation, updateOrderItem, updateOrder, upsertImportedOrder, addWorkspaceMember, removeWorkspaceMember, upsertUser } from "./db";
 
-beforeEach(() => { process.env.DATABASE_URL = "mysql://test"; state.rows = []; state.writes = []; state.locks = 0; });
+beforeEach(() => { process.env.DATABASE_URL = "postgres://test"; state.rows = []; state.writes = []; state.locks = 0; });
 const order = { id: 1, ownerId: 10, status: "COM_DIVERGENCIA", finalizedAt: new Date() };
 
 describe("bloqueios nas operações de persistência", () => {

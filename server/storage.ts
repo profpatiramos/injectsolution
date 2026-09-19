@@ -3,6 +3,9 @@
 // Downloads return /manus-storage/{key} paths served via 307 redirect.
 
 import { ENV } from "./_core/env";
+import { supabaseAdmin } from "./supabase";
+
+const BUCKET = "order-evidence";
 
 function getForgeConfig() {
   const forgeUrl = ENV.forgeApiUrl;
@@ -33,8 +36,13 @@ export async function storagePut(
   data: Buffer | Uint8Array | string,
   contentType = "application/octet-stream",
 ): Promise<{ key: string; url: string }> {
-  const { forgeUrl, forgeKey } = getForgeConfig();
   const key = appendHashSuffix(normalizeKey(relKey));
+  if (process.env.SUPABASE_URL) {
+    const { error } = await supabaseAdmin().storage.from(BUCKET).upload(key, data, { contentType, upsert: false });
+    if (error) throw new Error("Não foi possível armazenar a foto. Tente novamente.");
+    return { key, url: `/manus-storage/${key}` };
+  }
+  const { forgeUrl, forgeKey } = getForgeConfig();
 
   // 1. Get presigned PUT URL from Forge
   const presignUrl = new URL("v1/storage/presign/put", forgeUrl + "/");
@@ -77,6 +85,11 @@ export async function storageGet(relKey: string): Promise<{ key: string; url: st
 }
 
 export async function storageGetSignedUrl(relKey: string): Promise<string> {
+  if (process.env.SUPABASE_URL) {
+    const { data, error } = await supabaseAdmin().storage.from(BUCKET).createSignedUrl(normalizeKey(relKey), 60);
+    if (error || !data?.signedUrl) throw new Error("Foto indisponível.");
+    return data.signedUrl;
+  }
   const { forgeUrl, forgeKey } = getForgeConfig();
   const key = normalizeKey(relKey);
 

@@ -1,3 +1,5 @@
+import { generateAccessLink } from "./supabase";
+import { getUserById } from "./db";
 import { evidenceKinds } from "../shared/evidence";
 import { randomUUID } from "node:crypto";
 import { workspaceOwner } from "../shared/access";
@@ -207,6 +209,12 @@ export const appRouter = router({
     }),
     addMember: adminProcedure.input(z.object({ name: z.string().trim().min(2).max(200), email: z.string().email(), role: z.enum(["admin", "separador"]) })).mutation(async ({ ctx, input }) => {
       try { return await addWorkspaceMember(workspaceOwner(ctx.user), ctx.user.id, input); } catch (error) { return serverError(error); }
+    }),
+    accessLink: adminProcedure.input(z.object({ userId: z.number().int().positive() })).mutation(async ({ ctx, input }) => {
+      const member = await getUserById(input.userId);
+      const ownerId = workspaceOwner(ctx.user);
+      if (!member || member.disabledAt || !member.email || (member.id !== ownerId && member.workspaceOwnerId !== ownerId)) throw new TRPCError({ code: "NOT_FOUND", message: "Usuário não encontrado nesta equipe." });
+      try { return await generateAccessLink(member.email); } catch (error) { return serverError(error); }
     }),
     members: adminProcedure.query(({ ctx }) => listWorkspaceMembers(workspaceOwner(ctx.user))),
     setMemberRole: adminProcedure

@@ -1,0 +1,11 @@
+import "dotenv/config";
+import { createClient } from "@supabase/supabase-js";
+const url = process.env.SUPABASE_URL;
+const key = process.env.SUPABASE_SECRET_KEY || process.env.SUPABASE_SERVICE_ROLE_KEY;
+if (!url || !key) throw new Error("Configure SUPABASE_URL e a chave privada no ambiente.");
+const client = createClient(url, key, { auth: { persistSession: false } });
+const config = { public: false, fileSizeLimit: 3 * 1024 * 1024, allowedMimeTypes: ["image/jpeg", "image/png", "image/webp"] };
+const { data } = await client.storage.getBucket("order-evidence");
+const { error } = data ? await client.storage.updateBucket("order-evidence", config) : await client.storage.createBucket("order-evidence", config);
+if (error) throw new Error("Não foi possível configurar o armazenamento: " + error.message);
+console.log("Armazenamento privado de fotos configurado.");

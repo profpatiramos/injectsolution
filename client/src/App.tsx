@@ -7,6 +7,7 @@ import { ThemeProvider } from "./contexts/ThemeContext";
 import CategoriesPage from "./pages/CategoriesPage";
 import AdminPage from "./pages/AdminPage";
 import DashboardPage from "./pages/DashboardPage";
+import LoginPage from "./pages/LoginPage";
 import Home from "./pages/Home";
 import NotFound from "./pages/NotFound";
 import OrderDetailPage from "./pages/OrderDetailPage";
@@ -27,6 +28,8 @@ const AdminRoute = () => <InLayout><AdminPage /></InLayout>;
 function Router() {
   return <Switch>
     <Route path="/" component={Home} />
+    <Route path="/login" component={LoginPage} />
+    <Route path="/setup" component={LoginPage} />
     <Route path="/app" component={DashboardRoute} />
     <Route path="/orders/new" component={NewOrderRoute} />
     <Route path="/orders/:id/edit" component={EditOrderRoute} />

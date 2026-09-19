@@ -1,4 +1,5 @@
 import "dotenv/config";
+import { registerSupabaseAuth } from "./supabaseAuth";
 import express from "express";
 import { createExpressMiddleware } from "@trpc/server/adapters/express";
 import { registerOAuthRoutes } from "./_core/oauth";
@@ -15,7 +16,8 @@ export function createApplication() {
   app.use(express.json({ limit: "4.4mb" }));
   app.use(express.urlencoded({ limit: "4.4mb", extended: true }));
   registerStorageProxy(app);
-  registerOAuthRoutes(app);
+  if (process.env.OAUTH_SERVER_URL) registerOAuthRoutes(app);
+  registerSupabaseAuth(app);
   app.use("/api/trpc", createExpressMiddleware({ router: appRouter, createContext }));
   app.get("/api/health", (_req, res) => res.json({ status: "ok" }));
   return app;

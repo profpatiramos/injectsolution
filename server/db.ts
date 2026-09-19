@@ -3,8 +3,9 @@ import { normalizeEmail, assertManageableMember } from "./domain/team";
 import type { EvidenceKind } from "../shared/evidence";
 import { workspaceOwner } from "../shared/access";
 import { assertOpenOrder, assertEditableOrder, assertItemTransition } from "../shared/operation";
-import { getTableColumns, isNull, and, desc, eq, like, or } from "drizzle-orm";
-import { drizzle } from "drizzle-orm/mysql2";
+import { getTableColumns, isNull, and, desc, eq, ilike, or } from "drizzle-orm";
+import { drizzle } from "drizzle-orm/postgres-js";
+import postgres from "postgres";
 import {
   auditLogs,
   blingIntegrations,
@@ -26,9 +27,9 @@ import { ENV } from "./_core/env";
 let _db: ReturnType<typeof drizzle> | null = null;
 
 export async function getDb() {
-  if (!_db && process.env.DATABASE_URL) {
+  if (!_db && (process.env.DATABASE_URL || process.env.POSTGRES_URL)) {
     try {
-      _db = drizzle(process.env.DATABASE_URL);
+      _db = drizzle(postgres(process.env.DATABASE_URL || process.env.POSTGRES_URL!, { prepare: false, max: 3, idle_timeout: 20, connect_timeout: 15 }));
     } catch (error) {
       console.warn("[Database] Failed to connect:", error);
       _db = null;
@@ -60,7 +61,7 @@ export async function upsertUser(user: InsertUser): Promise<void> {
     }
     if (existing?.disabledAt) throw new Error("Seu acesso foi removido. Contate o administrador.");
     const values: Record<string, unknown> = { lastSignedIn: user.lastSignedIn ?? new Date() };
-    if (user.name !== undefined) values.name = user.name;
+    if (user.name !== undefined && !existing?.name) values.name = user.name;
     if (email) values.email = email;
     if (user.loginMethod !== undefined) values.loginMethod = user.loginMethod;
     if (email === ENV.bootstrapAdminEmail && (!existing || !existing.workspaceOwnerId)) {
@@ -131,7 +132,7 @@ export async function addWorkspaceMember(ownerId: number, actorUserId: number, i
       await tx.update(users).set({ name: input.name.trim(), role: input.role, workspaceOwnerId: ownerId, disabledAt: null }).where(eq(users.id, target.id));
       id = target.id;
     } else {
-      const result = await tx.insert(users).values({ openId: "pending:" + randomUUID(), name: input.name.trim(), email, role: input.role, workspaceOwnerId: ownerId, loginMethod: "pending" }).$returningId();
+      const result = await tx.insert(users).values({ openId: "pending:" + randomUUID(), name: input.name.trim(), email, role: input.role, workspaceOwnerId: ownerId, loginMethod: "pending" }).returning();
       id = result[0]!.id;
     }
     await writeAudit(tx, { ownerId, actorUserId, action: "MEMBRO_ADICIONADO", details: { userId: id, role: input.role } });
@@ -250,10 +251,10 @@ export async function listOrders(
     const token = `%${term}%`;
     clauses.push(
       or(
-        like(orders.blingOrderNumber, token),
-        like(orders.customerName, token),
-        like(orders.vehicleModel, token),
-        like(orders.vehicleEngine, token),
+        ilike(orders.blingOrderNumber, token),
+        ilike(orders.customerName, token),
+        ilike(orders.vehicleModel, token),
+        ilike(orders.vehicleEngine, token),
       )!,
     );
   }
@@ -325,7 +326,7 @@ function orderValues(input: OrderInput) {
 export async function createOrder(ownerId: number, actorUserId: number, input: OrderInput) {
   const db = await requireDb();
   return db.transaction(async tx => {
-    const result = await tx.insert(orders).values({ ownerId, ...orderValues(input), status: "NOVO" }).$returningId();
+    const result = await tx.insert(orders).values({ ownerId, ...orderValues(input), status: "NOVO" }).returning();
     const orderId = result[0]?.id;
     if (!orderId) throw new Error("Não foi possível criar o pedido.");
     await insertOrderItems(tx, orderId, input.items);
@@ -431,7 +432,7 @@ export async function startSeparation(ownerId: number, actorUserId: number, orde
 
 export async function addPhoto(ownerId: number, actorUserId: number, data: { kind: EvidenceKind; orderId: number; storageKey: string; url: string; filename: string; mimeType: string }) {
   return lockedOrder(ownerId, data.orderId, async tx => {
-    const result = await tx.insert(orderPhotos).values({ ...data, uploadedByUserId: actorUserId, capturedAt: new Date() }).$returningId();
+    const result = await tx.insert(orderPhotos).values({ ...data, uploadedByUserId: actorUserId, capturedAt: new Date() }).returning();
     await writeAudit(tx, { ownerId, actorUserId, orderId: data.orderId, action: "FOTO_ADICIONADA", details: { filename: data.filename, kind: data.kind } });
     return { id: result[0]?.id };
   });
@@ -472,7 +473,7 @@ export async function createCategory(ownerId: number, actorUserId: number, name:
   const db = await requireDb();
   const existing = await db.select().from(categories).where(and(eq(categories.ownerId, ownerId), eq(categories.name, name.trim()))).limit(1);
   if (existing[0]) return existing[0];
-  const result = await db.insert(categories).values({ ownerId, name: name.trim() }).$returningId();
+  const result = await db.insert(categories).values({ ownerId, name: name.trim() }).returning();
   const [category] = await db.select().from(categories).where(eq(categories.id, result[0]!.id)).limit(1);
   await writeAudit(db, { ownerId, actorUserId, action: "CATEGORIA_CRIADA", details: { category: name.trim() } });
   return category;
@@ -482,7 +483,7 @@ export async function listProducts(ownerId: number, search?: string) {
   const db = await requireDb();
   const term = search?.trim();
   const clause = term
-    ? and(eq(products.ownerId, ownerId), or(like(products.name, `%${term}%`), like(products.sku, `%${term}%`))!)
+    ? and(eq(products.ownerId, ownerId), or(ilike(products.name, `%${term}%`), ilike(products.sku, `%${term}%`))!)
     : eq(products.ownerId, ownerId);
   return db.select().from(products).where(clause).orderBy(desc(products.createdAt));
 }
@@ -505,7 +506,8 @@ export async function createProduct(
       unit: input.unit,
       note: optional(input.note),
     })
-    .$returningId();
+    .returning();
   await writeAudit(db, { ownerId, actorUserId, action: "PRODUTO_CRIADO", details: { productId: result[0]?.id, name: input.name.trim() } });
   return { id: result[0]?.id };
 }
+
