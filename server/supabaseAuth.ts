@@ -10,7 +10,8 @@ export function registerSupabaseAuth(app: Express) {
   app.post("/api/auth/session", async (req, res) => {
     res.setHeader("Cache-Control", "no-store");
     const origin = req.headers.origin;
-    const expected = process.env.PUBLIC_APP_URL ? new URL(process.env.PUBLIC_APP_URL).origin : undefined;
+    const appUrl = process.env.PUBLIC_APP_URL || (process.env.VERCEL_PROJECT_PRODUCTION_URL ? `https://${process.env.VERCEL_PROJECT_PRODUCTION_URL}` : undefined);
+    const expected = appUrl ? new URL(appUrl).origin : undefined;
     if (!origin || (expected ? origin !== expected : !/^http:\/\/localhost:\d+$/.test(origin))) {
       res.status(403).json({ error: "Origem de acesso inválida." }); return;
     }
@@ -34,3 +35,4 @@ export function registerSupabaseAuth(app: Express) {
     }
   });
 }
+

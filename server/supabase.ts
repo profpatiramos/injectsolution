@@ -8,7 +8,7 @@ export function supabaseAdmin() {
 }
 
 export async function generateAccessLink(email: string) {
-  const origin = process.env.PUBLIC_APP_URL;
+  const origin = process.env.PUBLIC_APP_URL || (process.env.VERCEL_PROJECT_PRODUCTION_URL ? `https://${process.env.VERCEL_PROJECT_PRODUCTION_URL}` : undefined);
   if (!origin) throw new Error("Configure o endereço público do aplicativo antes de gerar acessos.");
   const { data, error } = await supabaseAdmin().auth.admin.generateLink({
     type: "magiclink", email,
@@ -17,3 +17,4 @@ export async function generateAccessLink(email: string) {
   if (error || !data.properties?.action_link) throw new Error("Não foi possível gerar o acesso. Tente novamente.");
   return { accessLink: data.properties.action_link };
 }
+
