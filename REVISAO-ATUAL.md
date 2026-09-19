@@ -1,30 +1,32 @@
-# InjectSolution — estado em 19/09/2026
+# InjectSolution — publicação de 19/09/2026
 
-A cópia original foi preservada. Esta pasta contém a continuação do projeto.
+Aplicativo: https://injectsolution.vercel.app
+Repositório: https://github.com/profpatiramos/injectsolution
 
-## Implementado
-- Administração de funcionários e administradores, pré-cadastro, revogação e preservação do histórico. Administrador inicial: vpramos85@gmail.com.
-- Botão Salvar fixo no formulário, incluindo celular.
-- Duas evidências obrigatórias: caixa aberta com produtos e caixa fechada com etiqueta do cliente; identificação do funcionário e horário recebido pelo servidor.
-- Acompanhamento de etapas e fotos; não inclui ponto de funcionários.
-- Bloqueios de edição após separação e finalização, transações e isolamento entre equipes.
-- Adaptação para PostgreSQL, Supabase Auth e fotos privadas, com login e definição de senha por link individual.
-- Configuração da API para publicação na Vercel.
+## Entregue
+- Administração de funcionários e administradores, pré-cadastro, links individuais de acesso e revogação com preservação do histórico.
+- Primeiro administrador: vpramos85@gmail.com, com acesso privado preparado para definir a própria senha.
+- Botão Salvar fixo no formulário de pedidos, incluindo celular.
+- Duas evidências obrigatórias: caixa aberta com produtos e caixa fechada com etiqueta do cliente; funcionário e horário de recebimento registrados pelo servidor.
+- Histórico das etapas e fotos. Não inclui ponto de funcionários.
+- Bloqueios de edição após separação e finalização; transações e isolamento entre equipes.
+- PostgreSQL, Supabase Auth e armazenamento privado de fotos conectados.
+- Projeto Vercel publicado e integrado ao repositório GitHub. Credenciais somente no ambiente privado.
 
 ## Verificado
-- TypeScript sem erros.
-- 59 testes passaram, incluindo autenticação, autorização, regras e persistência simulada.
-- Compilação do cliente e servidor concluída.
-- Formulário e evidências revisados visualmente em desktop e celular em ambiente simulado.
-- Banco Supabase exclusivo injectsolution criado no plano gratuito, em São Paulo. Ainda não conectado à aplicação.
-- Permissão de envio ao GitHub profpatiramos/injectsolution confirmada por teste sem publicação.
+- TypeScript sem erros, 59 testes automatizados e compilação concluída.
+- Teste com banco real: login, sessão privada, cadastro, pedido, separação, conferência, duas fotos, horários, finalização, bloqueios, revogação, histórico e proteção das oito tabelas.
+- Teste pela API publicada: login real de administrador e funcionário, pré-cadastro, permissões, pedido completo, fotos inacessíveis sem sessão, finalização e bloqueio imediato do funcionário excluído.
+- Todos os usuários, pedidos e fotos sintéticos criados nos testes foram removidos.
+- Tela de login publicada revisada visualmente; formulário e evidências revisados anteriormente em desktop e celular.
+- Nenhuma credencial privada encontrada no pacote do navegador. Arquivos .env e links privados são ignorados pelo Git.
 
-## Pendente
-- Autorização específica para copiar as credenciais privadas, solicitada após bloqueio da revisão automática.
-- Aplicar a migração e configurar o bucket privado no banco real.
-- Configurar endereço público, redirecionamentos do login e primeiro acesso do administrador.
-- Testar o fluxo completo com banco, autenticação e fotos reais.
-- Enviar a versão validada ao GitHub e criar/publicar o projeto Vercel.
-- Credenciais Bling, exportação de dados da origem e agente de orçamentos não foram configurados.
+## Uso e limites
+- O administrador precisa definir a senha na tela de primeiro acesso aberta para ele.
+- Funcionários recebem o link individual compartilhado pelo administrador; não há envio automático de e-mail.
+- Validar câmera e legibilidade de uma etiqueta real no celular utilizado pela equipe.
+- A integração Bling exige credenciais próprias e não foi ativada. Pedidos podem ser cadastrados manualmente.
+- Dados antigos do Manus não foram migrados sem uma exportação do banco de origem. O agente de orçamentos não faz parte desta entrega.
+- A ilustração dependente de armazenamento Manus não veio na exportação; foi substituída por uma representação do fluxo na mesma identidade visual.
 
-A aplicação ainda não está publicada nem declarada pronta para produção. Consulte docs/supabase-deployment.md para os passos de configuração. Os SQL antigos de MySQL não devem ser executados no Supabase; a cadeia ativa está em drizzle/postgres.
+A cadeia de migração ativa está em drizzle/postgres. Os SQL antigos de MySQL não devem ser executados no Supabase. Consulte docs/supabase-deployment.md para manutenção.
