@@ -1,0 +1,15 @@
+export const activityLabels: Record<string, string> = {
+  PEDIDO_CRIADO: "Pedido criado",
+  PEDIDO_EDITADO: "Pedido editado",
+  PEDIDO_EXCLUIDO: "Pedido excluído",
+  SEPARACAO_INICIADA: "Separação iniciada",
+  ITEM_ATUALIZADO: "Item separado ou conferido",
+  ITENS_SEPARADOS: "Itens separados em lote",
+  ITENS_DESMARCADOS: "Itens desmarcados",
+  FOTO_ADICIONADA: "Foto enviada",
+  FOTO_REMOVIDA: "Foto removida",
+  SEPARACAO_FINALIZADA: "Separação finalizada",
+  PERFIL_ATUALIZADO: "Perfil do funcionário alterado",
+  MEMBRO_REMOVIDO: "Usuário removido da equipe",
+  MEMBRO_ADICIONADO: "Funcionário adicionado à equipe",
+};

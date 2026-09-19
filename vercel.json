@@ -1,0 +1,12 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "framework": null,
+  "buildCommand": "pnpm build",
+  "outputDirectory": "dist/public",
+  "functions": { "api/index.ts": { "maxDuration": 60 } },
+  "rewrites": [
+    { "source": "/api/:path*", "destination": "/api" },
+    { "source": "/manus-storage/:path*", "destination": "/api" },
+    { "source": "/((?!api|manus-storage|assets).*)", "destination": "/index.html" }
+  ]
+}

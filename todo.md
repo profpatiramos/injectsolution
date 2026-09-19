@@ -1,0 +1,32 @@
+# Project TODO
+
+- [x] Interpretar integralmente o briefing de identidade visual anexado e registrar as decisões de design aplicáveis.
+- [x] Definir o modelo de dados de pedidos operacionais associado exclusivamente ao usuário autenticado.
+- [x] Criar e aplicar a migração de banco de dados para pedidos operacionais.
+- [x] Implementar procedimentos protegidos para criar, listar, consultar, editar e excluir pedidos do próprio usuário.
+- [x] Criar testes unitários para isolamento de dados por usuário e operações essenciais de pedidos.
+- [x] Desenvolver a página inicial premium, responsiva e acessível com chamadas claras para o produto.
+- [x] Configurar autenticação individual e pontos de entrada/saída da sessão na interface.
+- [x] Desenvolver dashboard autenticado com visão geral dos pedidos registrados por usuário.
+- [x] Implementar os fluxos de criar, visualizar, editar e excluir pedidos com persistência.
+- [x] Implementar estados de carregamento, vazio, sucesso e erro nos fluxos essenciais.
+- [x] Verificar responsividade, acessibilidade, tipagem, testes e qualidade visual final.
+- [x] Preparar a versão inicial do projeto para publicação.
+- [x] Criar estrutura de pedidos, itens, catálogo, categorias, fotos e auditoria preparada para evolução com Bling e produção de chicotes.
+- [x] Implementar o fluxo operacional pedido → lista de separação → conferência → foto → finalização, sem exibir dados financeiros.
+- [x] Criar controle de status e quantidades por item, incluindo pendências e divergências.
+- [x] Implementar upload de uma ou mais fotos por pedido com vínculo ao responsável e registro de data.
+- [x] Criar telas de catálogo de produtos e categorias para apoiar o cadastro de pedidos.
+- [x] Criar listagem de pedidos com pesquisa, filtros e versão específica para impressão da lista operacional.
+- [x] Registrar eventos operacionais relevantes em auditoria por usuário e data.
+- [x] Criar estrutura de serviço isolada para futura integração de importação via Bling.
+- [x] Documentar arquitetura, banco, configuração local, deploy e evolução para GitHub.
+
+- [ ] Definir a matriz de permissões entre administrador e separador.
+- [ ] Implementar proteção de procedimentos no servidor para impedir ações administrativas ao separador.
+- [ ] Criar gerenciamento de usuários para atribuir e alterar os perfis de administrador e separador.
+- [ ] Restringir a navegação do separador ao acompanhamento de pedidos e à execução da separação.
+- [ ] Permitir ao separador marcar itens, informar quantidades, registrar fotos e concluir a separação, sem editar dados do pedido ou catálogo.
+- [ ] Permitir ao administrador visualizar o resultado, histórico, divergências e responsável pela separação.
+- [ ] Criar testes de autorização para administrador e separador e atualizar a documentação de perfis.
+- [ ] Validar o fluxo completo com os dois perfis em desktop e mobile.

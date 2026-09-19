@@ -1,0 +1,17 @@
+export const ENV = {
+  bootstrapAdminEmail: (process.env.BOOTSTRAP_ADMIN_EMAIL ?? "vpramos85@gmail.com").trim().toLowerCase(),
+  appId: process.env.VITE_APP_ID ?? "",
+  cookieSecret: process.env.JWT_SECRET ?? "",
+  databaseUrl: process.env.DATABASE_URL ?? "",
+  oAuthServerUrl: process.env.OAUTH_SERVER_URL ?? "",
+  ownerOpenId: process.env.OWNER_OPEN_ID ?? "",
+  isProduction: process.env.NODE_ENV === "production",
+  forgeApiUrl: process.env.BUILT_IN_FORGE_API_URL ?? "",
+  forgeApiKey: process.env.BUILT_IN_FORGE_API_KEY ?? "",
+  blingClientId: process.env.BLING_CLIENT_ID ?? "",
+  blingClientSecret: process.env.BLING_CLIENT_SECRET ?? "",
+  blingRedirectUri: process.env.BLING_REDIRECT_URI ?? "",
+  blingApiBaseUrl: process.env.BLING_API_BASE_URL ?? "https://api.bling.com.br/Api/v3",
+  blingOAuthBaseUrl: process.env.BLING_OAUTH_BASE_URL ?? "https://www.bling.com.br/Api/v3/oauth",
+  blingWebhookSecret: process.env.BLING_WEBHOOK_SECRET ?? "",
+};
