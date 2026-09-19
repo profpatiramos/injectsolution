@@ -6,7 +6,7 @@ A aplicação usa PostgreSQL, Supabase Auth e um bucket privado. A API Express e
 
 1. Conectar o banco Supabase exclusivo `injectsolution` ao projeto Vercel correspondente.
 2. Preencher `.env.example`. A integração Vercel fornece `POSTGRES_URL`, `SUPABASE_URL`, as chaves privadas e as variáveis públicas `VITE_SUPABASE_*`. Gerar um `JWT_SECRET` aleatório de pelo menos 32 caracteres e configurar `PUBLIC_APP_URL` com o endereço de produção.
-3. Em Supabase Authentication > URL Configuration, definir o endereço do aplicativo e permitir exatamente `https://SEU-DOMINIO/setup`. Adicionar o endereço local explicitamente para testes, sem curingas de produção.
+3. Em Supabase Authentication > URL Configuration, definir o endereço do aplicativo e permitir exatamente `https://SEU-DOMINIO/setup` e `https://SEU-DOMINIO/auth/callback`. Adicionar o endereço local explicitamente para testes, sem curingas de produção.
 4. Executar `pnpm db:migrate` e `pnpm db:storage`. A migração ativa RLS nas oito tabelas, sem políticas públicas: as consultas operacionais passam pelo servidor. O bucket `order-evidence` é privado.
 5. Executar `pnpm admin:bootstrap`. O primeiro administrador é `vpramos85@gmail.com`. O comando preserva cadastros existentes e grava um link único no arquivo ignorado `.env.admin-access`; o próprio administrador abre o link e define sua senha. Não enviar esse arquivo ao repositório.
 6. Validar login, pedido com vários itens, separação, conferência, as duas fotos, finalização e revogação de funcionário no ambiente publicado.
@@ -16,6 +16,16 @@ A aplicação usa PostgreSQL, Supabase Auth e um bucket privado. A API Express e
 O administrador cadastra nome, e-mail e perfil antes do primeiro acesso. Depois gera um link individual na lista e o compartilha privadamente com a pessoa. O sistema não envia mensagens automaticamente. O link permite definir ou recuperar a senha, expira e só pode ser utilizado uma vez. As permissões vêm do banco, nunca dos dados fornecidos pelo navegador.
 
 Excluir um funcionário revoga o acesso e preserva a autoria do histórico. A API verifica a revogação em cada requisição, mesmo quando ainda existe um cookie de sessão.
+
+## Recuperação de senha e Google
+
+A tela `/recover`, acessada por “Esqueci minha senha”, solicita ao Supabase o envio de um link único para `/setup`. A entrega para os funcionários exige SMTP próprio em Authentication > Emails > SMTP Settings. O envio padrão do Supabase é restrito aos endereços da organização do projeto. Nunca colocar a senha SMTP no código ou no navegador da aplicação.
+
+Para Google, criar um cliente OAuth Web no Google Auth Platform com retorno `https://cgtxgqhbuhlgceyodvck.supabase.co/auth/v1/callback`, e salvar suas credenciais somente no provedor Google do Supabase. Usar apenas os escopos básicos de identidade, e-mail e perfil. O cliente usa PKCE com verificador em sessionStorage e troca a identidade verificada pela sessão HttpOnly existente. Perfis e revogações continuam controlados pelo banco da aplicação.
+
+O projeto Google criado para esta aplicação é `groovy-groove-509119-t2` (InjectSolution). Em 19/09/2026, sua configuração aguarda o aceite da política de dados pelo proprietário; o provedor Google continua desativado. A interface informa essa pendência ao tentar entrar. O SMTP próprio também aguarda a escolha do serviço/remetente.
+
+O teste `ALLOW_LIVE_TESTS=yes pnpm exec tsx scripts/recovery-smoke.ts` valida a troca da senha, recusa da senha antiga e uso único do token com conta sintética removida ao final. Ele não envia e-mails e não comprova entrega SMTP.
 
 ## Compatibilidade com a origem
 

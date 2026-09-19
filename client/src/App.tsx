@@ -8,6 +8,7 @@ import CategoriesPage from "./pages/CategoriesPage";
 import AdminPage from "./pages/AdminPage";
 import DashboardPage from "./pages/DashboardPage";
 import LoginPage from "./pages/LoginPage";
+import AuthCallbackPage from "./pages/AuthCallbackPage";
 import Home from "./pages/Home";
 import NotFound from "./pages/NotFound";
 import OrderDetailPage from "./pages/OrderDetailPage";
@@ -30,6 +31,8 @@ function Router() {
     <Route path="/" component={Home} />
     <Route path="/login" component={LoginPage} />
     <Route path="/setup" component={LoginPage} />
+    <Route path="/recover" component={LoginPage} />
+    <Route path="/auth/callback" component={AuthCallbackPage} />
     <Route path="/app" component={DashboardRoute} />
     <Route path="/orders/new" component={NewOrderRoute} />
     <Route path="/orders/:id/edit" component={EditOrderRoute} />

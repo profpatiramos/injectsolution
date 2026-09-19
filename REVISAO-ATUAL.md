@@ -22,6 +22,7 @@ Repositório: https://github.com/profpatiramos/injectsolution
 - Nenhuma credencial privada encontrada no pacote do navegador. Arquivos .env e links privados são ignorados pelo Git.
 
 ## Uso e limites
+- Recuperação em `/recover` e retorno Google com PKCE implementados. Troca de senha e uso único do link verificados com conta temporária. SMTP próprio pendente para entrega aos funcionários; Google pendente de aceite da política e conclusão do cadastro OAuth. As opções ainda não estão integralmente ativadas.
 - O administrador precisa definir a senha na tela de primeiro acesso aberta para ele.
 - Funcionários recebem o link individual compartilhado pelo administrador; não há envio automático de e-mail.
 - Validar câmera e legibilidade de uma etiqueta real no celular utilizado pela equipe.
