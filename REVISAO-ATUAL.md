@@ -13,7 +13,7 @@ Repositório: https://github.com/profpatiramos/injectsolution
 - 69 testes automatizados, TypeScript e compilação aprovados. Teste com banco real validou catálogo pelo funcionário, observação após conferência, impressão com nome do responsável e exclusão pelo admin após iniciar a separação. Dados sintéticos removidos ao final.
 - Catálogo inicial: 224 produtos copiados da lista de estoque do Bling, excluindo os dois registros com nome exato “teste”. Unidade OUTRO até revisão/sincronização. A sincronização futura vincula os SKUs existentes e preserva exclusões locais.
 - Busca individual: botão “Buscar pedido no Bling” preenche somente número e cliente, identifica pedido já cadastrado e preserva os itens locais. 74 testes automatizados e compilação aprovados.
-- Conexão OAuth ainda pendente: aplicativo privado preparado com consulta de Produtos e Pedidos de Venda; falta o celular comercial obrigatório e a conclusão da autorização. Busca real ainda não validada.
+- Bling conectado: aplicativo privado autorizado com consulta de Produtos e Pedidos de Venda; credenciais como segredos de produção na Vercel e tokens no banco privado. Busca de um pedido real validada pela tela publicada, preenchendo somente número e cliente, sem criar pedido durante o teste.
 
 ## Entregue
 - Administração de funcionários e administradores, pré-cadastro, links individuais de acesso e revogação com preservação do histórico.
@@ -38,7 +38,7 @@ Repositório: https://github.com/profpatiramos/injectsolution
 - O administrador precisa definir a senha na tela de primeiro acesso aberta para ele.
 - Funcionários recebem o link individual compartilhado pelo administrador; não há envio automático de e-mail.
 - Validar câmera e legibilidade de uma etiqueta real no celular utilizado pela equipe.
-- A integração Bling exige credenciais próprias e não foi ativada. Pedidos podem ser cadastrados manualmente.
+- Bling ativo: em Novo pedido, informe o número e clique em Buscar pedido no Bling. A sincronização é sob demanda; não existe atualização automática por webhook.
 - Dados antigos do Manus não foram migrados sem uma exportação do banco de origem. O agente de orçamentos não faz parte desta entrega.
 - A ilustração dependente de armazenamento Manus não veio na exportação; foi substituída por uma representação do fluxo na mesma identidade visual.
 
