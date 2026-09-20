@@ -134,6 +134,28 @@ export function normalizeBlingOrder(order: BlingSalesOrder): OrderInput {
 
 }
 
+export async function findBlingOrder(ownerId: number, number: string) {
+  const requested = number.trim();
+  if (!/^\d{1,20}$/.test(requested)) throw new Error("Informe somente os dígitos do número do pedido Bling.");
+  const token = await getValidAccessToken(ownerId);
+  const url = new URL(`${API_BASE}/pedidos/vendas`);
+  url.searchParams.set("numero", requested);
+  url.searchParams.set("pagina", "1");
+  url.searchParams.set("limite", "100");
+  const response = await fetch(url, { headers: { Authorization: `Bearer ${token}`, Accept: "application/json" }, signal: AbortSignal.timeout(15000) });
+  if (response.status === 401) throw new Error("A conexão com o Bling expirou. Reconecte a conta em Administração.");
+  if (response.status === 403) throw new Error("A conexão não tem permissão para consultar pedidos de venda no Bling.");
+  if (response.status === 429) throw new Error("O Bling recebeu muitas consultas. Aguarde alguns segundos e tente novamente.");
+  if (!response.ok) throw new Error("Não foi possível consultar o Bling agora. Tente novamente.");
+  const result = await response.json() as BlingListResponse;
+  const matches = (result.data || []).filter(order => /^\d+$/.test(String(order.numero ?? "")) && BigInt(String(order.numero)) === BigInt(requested));
+  if (!matches.length) throw new Error("Pedido não encontrado no Bling. Confira o número informado.");
+  if (matches.length !== 1) throw new Error("Há mais de um pedido com esse número no Bling. Confira a origem do pedido.");
+  const match = matches[0];
+  if (!match.id || !match.contato?.nome?.trim()) throw new Error("O pedido no Bling está sem identificação ou nome do cliente.");
+  return { blingOrderId: String(match.id), blingOrderNumber: String(match.numero), customerName: match.contato.nome.trim() };
+}
+
 export async function syncBlingOrders(ownerId: number, actorUserId: number, options?: { sinceDays?: number; maxPages?: number }) {
   const accessToken = await getValidAccessToken(ownerId);
   const sinceDays = Math.min(365, Math.max(1, options?.sinceDays ?? 30));
@@ -189,11 +211,12 @@ export async function syncBlingProducts(ownerId: number, actorUserId: number, pa
   const products = result.data || [];
   let imported = 0;
   for (const summary of products) {
-    if (summary.situacao === "I") continue;
+    if (summary.situacao === "I" || summary.nome?.trim().toLowerCase() === "teste") continue;
     // The detail endpoint supplies the unit, which may be omitted from the list.
     await new Promise(resolve => setTimeout(resolve, 400));
     const detailResponse = await fetch(`${API_BASE}/produtos/${encodeURIComponent(String(summary.id))}`, { headers: { Authorization: `Bearer ${token}`, Accept: "application/json" }, signal: AbortSignal.timeout(15000) });
     const detail = await parseJson<{ data: BlingProduct }>(detailResponse);
+    if (detail.data.nome?.trim().toLowerCase() === "teste") continue;
     await upsertBlingProduct(ownerId, actorUserId, normalizeBlingProduct(detail.data));
     imported += 1;
   }

@@ -11,7 +11,9 @@ Repositório: https://github.com/profpatiramos/injectsolution
 - Importação Bling preparada para trazer apenas nome do cliente e número do pedido; itens são montados localmente. Uma nova sincronização preserva pedidos existentes e não recria pedidos excluídos pelo administrador.
 - Sincronização online de produtos disponível em Produtos para o admin, em lotes de 20 com continuação; mantém o ID do Bling, SKU e unidade, preserva categorias e observações locais e não reativa produtos removidos localmente. A integração lê dados do Bling; não exclui nem altera produtos no ERP.
 - 69 testes automatizados, TypeScript e compilação aprovados. Teste com banco real validou catálogo pelo funcionário, observação após conferência, impressão com nome do responsável e exclusão pelo admin após iniciar a separação. Dados sintéticos removidos ao final.
-- Conexão real ao Bling ainda pendente: credenciais OAuth não configuradas e navegador disponível aguardando login na conta da Inject. Não foi realizada sincronização real com o ERP.
+- Catálogo inicial: 224 produtos copiados da lista de estoque do Bling, excluindo os dois registros com nome exato “teste”. Unidade OUTRO até revisão/sincronização. A sincronização futura vincula os SKUs existentes e preserva exclusões locais.
+- Busca individual: botão “Buscar pedido no Bling” preenche somente número e cliente, identifica pedido já cadastrado e preserva os itens locais. 74 testes automatizados e compilação aprovados.
+- Conexão OAuth ainda pendente: aplicativo privado preparado com consulta de Produtos e Pedidos de Venda; falta o celular comercial obrigatório e a conclusão da autorização. Busca real ainda não validada.
 
 ## Entregue
 - Administração de funcionários e administradores, pré-cadastro, links individuais de acesso e revogação com preservação do histórico.

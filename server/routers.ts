@@ -38,7 +38,7 @@ import {
   removeProduct,
 } from "./db";
 import { storagePut } from "./storage";
-import { createBlingOAuthState, getBlingAuthorizationUrl, syncBlingOrders, syncBlingProducts } from "./services/bling";
+import { createBlingOAuthState, getBlingAuthorizationUrl, syncBlingOrders, syncBlingProducts, findBlingOrder } from "./services/bling";
 
 
 const orderStatusSchema = z.enum([
@@ -235,6 +235,14 @@ export const appRouter = router({
       }),
   }),
   bling: router({
+    findOrder: adminProcedure.input(z.object({ number: z.string().trim().regex(/^\d{1,20}$/, "Informe somente os dígitos do número do pedido.") })).mutation(async ({ ctx, input }) => {
+      try {
+        const ownerId = workspaceOwner(ctx.user);
+        const result = await findBlingOrder(ownerId, input.number);
+        const existing = (await listOrders(ownerId, { search: result.blingOrderNumber })).find(order => order.blingOrderId === result.blingOrderId || order.blingOrderNumber === result.blingOrderNumber);
+        return { ...result, existingOrderId: existing?.id ?? null };
+      } catch (error) { return serverError(error); }
+    }),
     status: adminProcedure.query(async ({ ctx }) => {
       const integration = await getBlingIntegration(workspaceOwner(ctx.user));
       return integration

@@ -546,9 +546,9 @@ export async function upsertBlingProduct(ownerId: number, actorUserId: number, i
   return db.transaction(async tx => {
     // Serialize catalog imports for this workspace, including concurrent browser tabs.
     await tx.select().from(users).where(eq(users.id, ownerId)).limit(1).for("update");
-    const [existing] = await tx.select().from(products).where(and(eq(products.ownerId, ownerId), eq(products.externalId, input.externalId))).limit(1);
+    const [existing] = await tx.select().from(products).where(and(eq(products.ownerId, ownerId), or(eq(products.externalId, input.externalId), input.sku ? and(isNull(products.externalId), eq(products.sku, input.sku)) : undefined))).limit(1);
     if (existing) {
-      await tx.update(products).set({ name: input.name, sku: input.sku || null, unit: input.unit }).where(eq(products.id, existing.id));
+      await tx.update(products).set({ externalId: input.externalId, name: input.name, sku: input.sku || null, unit: input.unit }).where(eq(products.id, existing.id));
       return { id: existing.id };
     }
     const [created] = await tx.insert(products).values({ ownerId, ...input }).returning();
