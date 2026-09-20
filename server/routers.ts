@@ -34,9 +34,11 @@ import {
   startSeparation,
   updateOrder,
   updateOrderItem,
+  updateOrderItemNote,
+  removeProduct,
 } from "./db";
 import { storagePut } from "./storage";
-import { createBlingOAuthState, getBlingAuthorizationUrl, syncBlingOrders } from "./services/bling";
+import { createBlingOAuthState, getBlingAuthorizationUrl, syncBlingOrders, syncBlingProducts } from "./services/bling";
 
 
 const orderStatusSchema = z.enum([
@@ -65,7 +67,6 @@ const orderInputSchema = z.object({
   blingOrderNumber: z.string().trim().min(1, "Informe o número do pedido.").max(120),
   blingOrderId: z.string().max(120).optional(),
   customerName: z.string().trim().min(2, "Informe o cliente.").max(240),
-  customerPhone: z.string().max(60).optional(),
   customerNote: z.string().max(2000).optional(),
   vehicleBrand: z.string().max(120).optional(),
   vehicleModel: z.string().max(160).optional(),
@@ -151,6 +152,9 @@ export const appRouter = router({
           return serverError(error);
         }
       }),
+    updateItemNote: separadorProcedure.input(z.object({ orderId: z.number().int().positive(), itemId: z.number().int().positive(), note: z.string().max(1000) })).mutation(async ({ ctx, input }) => {
+      try { return await updateOrderItemNote(workspaceOwner(ctx.user), ctx.user.id, input); } catch (error) { return serverError(error); }
+    }),
     finalize: separadorProcedure.input(z.object({ orderId: z.number().int().positive(), allowPending: z.boolean().default(false) })).mutation(async ({ ctx, input }) => {
       try {
         return await finalizeOrder(workspaceOwner(ctx.user), ctx.user.id, input.orderId, input.allowPending);
@@ -194,7 +198,10 @@ export const appRouter = router({
       }
     }),
     products: separadorProcedure.input(z.object({ search: z.string().max(120).optional() }).optional()).query(({ ctx, input }) => listProducts(workspaceOwner(ctx.user), input?.search)),
-    createProduct: adminProcedure.input(z.object({ categoryId: z.number().int().positive().optional(), sku: z.string().max(120).optional(), externalId: z.string().max(120).optional(), name: z.string().trim().min(2).max(240), description: z.string().max(2000).optional(), unit: unitSchema, note: z.string().max(1000).optional() })).mutation(async ({ ctx, input }) => {
+    removeProduct: separadorProcedure.input(z.object({ id: z.number().int().positive() })).mutation(async ({ ctx, input }) => {
+      try { return await removeProduct(workspaceOwner(ctx.user), ctx.user.id, input.id); } catch (error) { return serverError(error); }
+    }),
+    createProduct: separadorProcedure.input(z.object({ categoryId: z.number().int().positive().optional(), sku: z.string().max(120).optional(), externalId: z.string().max(120).optional(), name: z.string().trim().min(2).max(240), description: z.string().max(2000).optional(), unit: unitSchema, note: z.string().max(1000).optional() })).mutation(async ({ ctx, input }) => {
       try {
         return await createProduct(workspaceOwner(ctx.user), ctx.user.id, input);
       } catch (error) {
@@ -252,6 +259,9 @@ export const appRouter = router({
           return serverError(error);
         }
       }),
+    syncProducts: adminProcedure.input(z.object({ page: z.number().int().min(1).max(10000).default(1) }).optional()).mutation(async ({ ctx, input }) => {
+      try { return await syncBlingProducts(workspaceOwner(ctx.user), ctx.user.id, input?.page); } catch (error) { return serverError(error); }
+    }),
     disconnect: adminProcedure.mutation(async ({ ctx }) => {
       await saveBlingIntegration(workspaceOwner(ctx.user), { status: "PENDENTE", accessToken: null, refreshToken: null, accessTokenExpiresAt: null, oauthState: null });
       return { success: true };

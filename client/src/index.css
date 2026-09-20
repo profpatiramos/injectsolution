@@ -102,6 +102,7 @@
 .nav-item-active { color: #fff; background: linear-gradient(90deg, rgba(227,25,55,.2), rgba(227,25,55,0)); border-left-color: var(--inject-red); }
 .status-dot { width: .5rem; height: .5rem; border-radius: 999px; display: inline-block; }
 .print-only { display: none; }
+.conference-print { display: none; }
 
 @media (prefers-reduced-motion: no-preference) {
   .enter-up { animation: enter-up .44s cubic-bezier(.23,1,.32,1) both; }
@@ -109,6 +110,15 @@
 }
 
 @media print {
+  @page { size: A4; margin: 14mm; }
+  body:has(> .conference-print) > :not(.conference-print) { display: none !important; }
+  .conference-print { display: block !important; color: #000; font: 11pt Arial, sans-serif; }
+  .conference-print h1 { font-size: 16pt; font-weight: bold; margin-bottom: 12px; }
+  .conference-print table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+  .conference-print th, .conference-print td { border: 1px solid #999; padding: 7px; text-align: left; overflow-wrap: anywhere; }
+  .conference-print tr { break-inside: avoid; }
+  .conference-print thead { display: table-header-group; }
+  .conference-print td p { margin-top: 5px; font-size: 10pt; white-space: pre-wrap; }
   .no-print { display: none !important; }
   .print-only { display: block; }
   body { background: #fff; }

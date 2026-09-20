@@ -13,6 +13,8 @@ vi.mock("./db", () => ({
   createCategory: vi.fn(),
   createOrder: vi.fn(),
   createProduct: vi.fn(),
+  removeProduct: vi.fn(),
+  updateOrderItemNote: vi.fn(),
   finalizeOrder: vi.fn(),
   getDashboard: vi.fn(),
   getOrderDetail: vi.fn(),
@@ -30,7 +32,7 @@ vi.mock("./db", () => ({
 vi.mock("./storage", () => ({ storagePut: vi.fn() }));
 vi.mock("./supabase", () => ({ generateAccessLink: vi.fn() }));
 import { generateAccessLink } from "./supabase";
-import { getUserById } from "./db";
+import { getUserById, createProduct, removeProduct } from "./db";
 
 import { getOrderDetail, listOrders, startSeparation, assertPhotoUploadAllowed, createOrder } from "./db";
 import { storagePut } from "./storage";
@@ -58,6 +60,17 @@ function contextFor(userId: number, role: "user" | "admin" | "separador" = "user
 
 describe("isolamento por usuário nas rotas de pedidos", () => {
   beforeEach(() => vi.clearAllMocks());
+
+  it.each(["admin", "separador"] as const)("permite catálogo na própria equipe: %s", async role => {
+    const caller = appRouter.createCaller(contextFor(41, role, 10));
+    await caller.catalog.createProduct({ name: "Produto", unit: "UN" });
+    await caller.catalog.removeProduct({ id: 7 });
+    expect(createProduct).toHaveBeenCalledWith(10, 41, expect.objectContaining({ name: "Produto" }));
+    expect(removeProduct).toHaveBeenCalledWith(10, 41, 7);
+  });
+  it("mantém exclusão de pedido restrita ao admin", async () => {
+    await expect(appRouter.createCaller(contextFor(41, "separador", 10)).orders.remove({ id: 7 })).rejects.toMatchObject({ code: "FORBIDDEN" });
+  });
 
   it("funcionário não pode gerar links de acesso", async () => {
     await expect(appRouter.createCaller(contextFor(41, "separador", 10)).admin.accessLink({ userId: 10 })).rejects.toMatchObject({ code: "FORBIDDEN" });

@@ -11,7 +11,7 @@ const menuItems = [
   { icon: LayoutDashboard, label: "Visão geral", path: "/app", adminOnly: false },
   { icon: Archive, label: "Pedidos", path: "/orders", adminOnly: false },
   { icon: PackagePlus, label: "Novo pedido", path: "/orders/new", adminOnly: true },
-  { icon: Boxes, label: "Produtos", path: "/products", adminOnly: true },
+  { icon: Boxes, label: "Produtos", path: "/products", adminOnly: false },
   { icon: ShieldCheck, label: "Administração", path: "/admin", adminOnly: true },
 ];
 
@@ -36,7 +36,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   }
 
   if (!hasOperationAccess(user)) return <div className="surface-card m-8 p-8"><h1 className="page-title">Aguardando liberação</h1><p className="mt-4">Peça ao administrador que adicione seu e-mail à equipe e libere seu perfil.</p><button className="inject-button mt-5 p-3" onClick={() => window.location.reload()}>Verificar acesso</button><button className="ml-4" onClick={logout}>Sair</button></div>;
-  const adminRoute = ["/products", "/categories", "/admin", "/orders/new"].includes(location) || /^\/orders\/[^/]+\/edit$/.test(location);
+  const adminRoute = ["/categories", "/admin", "/orders/new"].includes(location) || /^\/orders\/[^/]+\/edit$/.test(location);
   if (adminRoute && user.role !== "admin") return <div className="surface-card m-8 p-8"><h1 className="page-title">Acesso restrito</h1><p className="mt-4">Esta área é exclusiva do administrador.</p><Link href="/orders" className="inject-button mt-5 inline-block p-3">Voltar aos pedidos</Link></div>;
   const closeMenu = () => setMenuOpen(false);
   const visibleMenuItems = menuItems.filter(item => !item.adminOnly || user.role === "admin");

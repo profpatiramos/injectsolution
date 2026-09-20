@@ -1,6 +1,6 @@
 import crypto from "node:crypto";
 import { ENV } from "../_core/env";
-import { getBlingIntegration, saveBlingIntegration, upsertImportedOrder, type OrderInput } from "../db";
+import { getBlingIntegration, saveBlingIntegration, upsertImportedOrder, upsertBlingProduct, type OrderInput } from "../db";
 
 const API_BASE = ENV.blingApiBaseUrl.replace(/\/$/, "");
 const OAUTH_BASE = ENV.blingOAuthBaseUrl.replace(/\/$/, "");
@@ -125,25 +125,13 @@ function normalizeUnit(unit?: string): OrderInput["items"][number]["unit"] {
 export function normalizeBlingOrder(order: BlingSalesOrder): OrderInput {
   const orderNumber = String(order.numero ?? order.id ?? "").trim();
   if (!orderNumber) throw new Error("Pedido Bling sem número identificável.");
-  const items = (order.itens || []).map(item => ({
-    productId: undefined,
-    sku: item.codigo || item.produto?.codigo || undefined,
-    description: item.descricao || item.produto?.nome || "Item sem descrição",
-    categoryName: "Outros",
-    quantity: Math.max(1, Math.round(Number(item.quantidade || 1))),
-    unit: normalizeUnit(item.unidade),
-    note: undefined,
-  }));
-  if (!items.length) throw new Error(`O pedido ${orderNumber} não possui itens.`);
   return {
     blingOrderNumber: orderNumber,
     blingOrderId: order.id != null ? String(order.id) : undefined,
-    orderDate: order.data ? new Date(order.data) : order.dataAlteracao ? new Date(order.dataAlteracao) : undefined,
     customerName: order.contato?.nome || "Cliente não informado",
-    customerPhone: order.contato?.telefone || order.contato?.celular || undefined,
-    customerNote: order.observacoes || undefined,
-    items,
-  } as OrderInput;
+    items: [],
+  };
+
 }
 
 export async function syncBlingOrders(ownerId: number, actorUserId: number, options?: { sinceDays?: number; maxPages?: number }) {
@@ -159,14 +147,15 @@ export async function syncBlingOrders(ownerId: number, actorUserId: number, opti
     const orders = response.data || [];
     for (const raw of orders) {
       try {
-        await upsertImportedOrder(ownerId, actorUserId, normalizeBlingOrder(raw));
-        imported += 1;
+        const result = await upsertImportedOrder(ownerId, actorUserId, normalizeBlingOrder(raw));
+        if ("skipped" in result && result.skipped) skipped += 1; else imported += 1;
       } catch (error) {
         skipped += 1;
-        console.warn("[Bling] Pedido ignorado", raw.id ?? raw.numero, error);
+        console.warn("[Bling] Pedido não importado", raw.id ?? raw.numero);
       }
     }
     if (orders.length < DEFAULT_LIMIT) break;
+    await new Promise(resolve => setTimeout(resolve, 400));
   }
   await saveBlingIntegration(ownerId, { status: "CONECTADO", lastSyncedAt: new Date() });
   return { imported, skipped, pages: page, sinceDays };
@@ -181,3 +170,32 @@ export function verifyBlingWebhookSignature(rawBody: Buffer, signature: string |
 }
 
 export type { BlingSalesOrder };
+
+type BlingProduct = { id?: number | string; nome?: string; codigo?: string; unidade?: string; situacao?: string };
+export function normalizeBlingProduct(product: BlingProduct) {
+  if (!product.id || !product.nome?.trim()) throw new Error("Produto Bling sem identificação ou nome.");
+  return { externalId: String(product.id), name: product.nome.trim().slice(0, 240), sku: product.codigo?.slice(0, 120), unit: normalizeUnit(product.unidade || "OUTRO") };
+}
+
+export async function syncBlingProducts(ownerId: number, actorUserId: number, page = 1) {
+  const token = await getValidAccessToken(ownerId);
+  const limit = 20;
+  const url = new URL(`${API_BASE}/produtos`);
+  url.searchParams.set("pagina", String(page));
+  url.searchParams.set("limite", String(limit));
+  url.searchParams.set("criterio", "2");
+  const response = await fetch(url, { headers: { Authorization: `Bearer ${token}`, Accept: "application/json" }, signal: AbortSignal.timeout(15000) });
+  const result = await parseJson<{ data?: BlingProduct[] }>(response);
+  const products = result.data || [];
+  let imported = 0;
+  for (const summary of products) {
+    if (summary.situacao === "I") continue;
+    // The detail endpoint supplies the unit, which may be omitted from the list.
+    await new Promise(resolve => setTimeout(resolve, 400));
+    const detailResponse = await fetch(`${API_BASE}/produtos/${encodeURIComponent(String(summary.id))}`, { headers: { Authorization: `Bearer ${token}`, Accept: "application/json" }, signal: AbortSignal.timeout(15000) });
+    const detail = await parseJson<{ data: BlingProduct }>(detailResponse);
+    await upsertBlingProduct(ownerId, actorUserId, normalizeBlingProduct(detail.data));
+    imported += 1;
+  }
+  return { imported, hasMore: products.length === limit, nextPage: products.length === limit ? page + 1 : 1 };
+}

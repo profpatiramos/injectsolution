@@ -16,7 +16,7 @@ vi.mock("drizzle-orm/postgres-js", () => {
   };
   return { drizzle: () => db };
 });
-import { addPhoto, finalizeOrder, markAllItems, removePhoto, startSeparation, updateOrderItem, updateOrder, upsertImportedOrder, addWorkspaceMember, removeWorkspaceMember, upsertUser } from "./db";
+import { removeOrder, removeProduct, updateOrderItemNote, addPhoto, finalizeOrder, markAllItems, removePhoto, startSeparation, updateOrderItem, updateOrder, upsertImportedOrder, addWorkspaceMember, removeWorkspaceMember, upsertUser } from "./db";
 
 beforeEach(() => { process.env.DATABASE_URL = "postgres://test"; state.rows = []; state.writes = []; state.locks = 0; });
 const order = { id: 1, ownerId: 10, status: "COM_DIVERGENCIA", finalizedAt: new Date() };
@@ -92,7 +92,7 @@ describe("bloqueios nas operações de persistência", () => {
     state.rows = [[active]];
     await expect(updateOrder(10, 11, 1, input)).rejects.toThrow("já começou");
     state.rows = [[active], [active]];
-    await expect(upsertImportedOrder(10, 11, input)).rejects.toThrow("já começou");
+    await expect(upsertImportedOrder(10, 11, input)).resolves.toMatchObject({ skipped: true });
     expect(state.writes).toEqual([]);
   });
   it("marcação em lote mantém divergências e exige conferência posterior", async () => {
@@ -100,6 +100,34 @@ describe("bloqueios nas operações de persistência", () => {
     await markAllItems(10, 11, 1, true);
     expect(state.writes[0]).toMatchObject({ status: "SEPARADO", quantitySeparated: 3, quantityChecked: 0 });
     expect(state.writes).toHaveLength(3);
+  });
+  it("permite excluir pedido em andamento e registra o responsável", async () => {
+    state.rows = [[{ ...order, status: "EM_SEPARACAO", finalizedAt: null, blingOrderNumber: "123" }]];
+    await removeOrder(10, 11, 1);
+    expect(state.writes.filter(value => value === "delete")).toHaveLength(3);
+    expect(state.writes.at(-1)).toMatchObject({ action: "PEDIDO_EXCLUIDO", actorUserId: 11 });
+  });
+  it("continua protegendo pedidos finalizados contra exclusão", async () => {
+    state.rows = [[order]];
+    await expect(removeOrder(10, 11, 1)).rejects.toThrow("finalizado");
+    expect(state.writes).toEqual([]);
+  });
+  it("salva observação de item conferido sem alterar quantidades ou status", async () => {
+    state.rows = [[{ ...order, status: "EM_SEPARACAO", finalizedAt: null }], [{ id: 2, status: "CONFERIDO" }]];
+    await updateOrderItemNote(10, 11, { orderId: 1, itemId: 2, note: "  Embalagem revisada  " });
+    expect(state.writes[0]).toEqual({ note: "Embalagem revisada" });
+    expect(state.writes[1]).toMatchObject({ actorUserId: 11, details: { status: "CONFERIDO", note: "Embalagem revisada" } });
+  });
+  it("excluir produto preserva o cadastro para os pedidos existentes", async () => {
+    state.rows = [[{ id: 2, name: "Produto" }]];
+    await removeProduct(10, 11, 2);
+    expect(state.writes[0]).toEqual({ active: false });
+    expect(state.writes).not.toContain("delete");
+  });
+  it("não inicia separação de um cabeçalho sem itens", async () => {
+    state.rows = [[{ ...order, status: "NOVO", finalizedAt: null }], []];
+    await expect(startSeparation(10, 11, 1)).rejects.toThrow("Adicione os produtos");
+    expect(state.writes).toEqual([]);
   });
   it("não finaliza sem foto, mesmo com confirmação de pendências", async () => {
     state.rows = [[{ ...order, finalizedAt: null }], [{ quantity: 1, quantitySeparated: 1, quantityChecked: 1, status: "CONFERIDO" }], []];

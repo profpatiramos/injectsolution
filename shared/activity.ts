@@ -1,4 +1,8 @@
 export const activityLabels: Record<string, string> = {
+  OBSERVACAO_ITEM_ATUALIZADA: "Observação do item registrada",
+  PRODUTO_REMOVIDO: "Produto removido do catálogo",
+  PRODUTO_IMPORTADO: "Produto importado do Bling",
+  PRODUTO_CRIADO: "Produto cadastrado",
   PEDIDO_CRIADO: "Pedido criado",
   PEDIDO_EDITADO: "Pedido editado",
   PEDIDO_EXCLUIDO: "Pedido excluído",

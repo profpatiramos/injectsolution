@@ -283,14 +283,16 @@ export async function getOrderDetail(ownerId: number, orderId: number) {
   const order = await assertOrderOwnership(ownerId, orderId);
   const db = await requireDb();
   const [items, photos, audit] = await Promise.all([
-    db.select().from(orderItems).where(eq(orderItems.orderId, orderId)).orderBy(orderItems.categoryName, orderItems.id),
+    db.select({ ...getTableColumns(orderItems), responsibleName: users.name }).from(orderItems).leftJoin(users, eq(users.id, orderItems.responsibleUserId)).where(eq(orderItems.orderId, orderId)).orderBy(orderItems.categoryName, orderItems.id),
     db.select({ ...getTableColumns(orderPhotos), uploadedByName: users.name }).from(orderPhotos).leftJoin(users, eq(users.id, orderPhotos.uploadedByUserId)).where(eq(orderPhotos.orderId, orderId)).orderBy(desc(orderPhotos.capturedAt)),
     db.select({ ...getTableColumns(auditLogs), actorName: users.name }).from(auditLogs).leftJoin(users, eq(users.id, auditLogs.actorUserId)).where(and(eq(auditLogs.orderId, orderId), eq(auditLogs.ownerId, ownerId))).orderBy(desc(auditLogs.createdAt)),
   ]);
-  return { order, items, photos, audit };
+  const responsible = order.responsibleUserId ? await getUserById(order.responsibleUserId) : undefined;
+  return { order, items, photos, audit, responsibleName: responsible?.name || null };
 }
 
 async function insertOrderItems(db: any, orderId: number, items: OrderItemInput[]) {
+  if (!items.length) return;
   await db.insert(orderItems).values(
     items.map(item => ({
       orderId,
@@ -308,7 +310,7 @@ async function insertOrderItems(db: any, orderId: number, items: OrderItemInput[
 function orderValues(input: OrderInput) {
   return {
     blingOrderNumber: input.blingOrderNumber.trim(),
-    blingOrderId: optional(input.blingOrderId),
+    blingOrderId: input.blingOrderId === undefined ? undefined : optional(input.blingOrderId),
     orderDate: input.orderDate ?? undefined,
     customerName: input.customerName.trim(),
     customerPhone: optional(input.customerPhone),
@@ -338,12 +340,14 @@ export async function createOrder(ownerId: number, actorUserId: number, input: O
 export async function upsertImportedOrder(ownerId: number, actorUserId: number, input: OrderInput) {
   const db = await requireDb();
   const clauses = input.blingOrderId
-    ? and(eq(orders.ownerId, ownerId), eq(orders.blingOrderId, input.blingOrderId))
+    ? and(eq(orders.ownerId, ownerId), or(eq(orders.blingOrderId, input.blingOrderId), eq(orders.blingOrderNumber, input.blingOrderNumber)))
     : and(eq(orders.ownerId, ownerId), eq(orders.blingOrderNumber, input.blingOrderNumber));
   const [existing] = await db.select().from(orders).where(clauses).limit(1);
-  if (!existing) return createOrder(ownerId, actorUserId, input);
-  await updateOrder(ownerId, actorUserId, existing.id, input);
-  return { id: existing.id, updated: true };
+  if (existing) return { id: existing.id, skipped: true };
+  // A new sync must not recreate an order deliberately removed by the administrator.
+  const removals = await db.select().from(auditLogs).where(and(eq(auditLogs.ownerId, ownerId), eq(auditLogs.action, "PEDIDO_EXCLUIDO")));
+  if (removals.some(event => (event.details as { number?: string } | null)?.number === input.blingOrderNumber)) return { skipped: true };
+  return createOrder(ownerId, actorUserId, input);
 }
 
 type Database = NonNullable<Awaited<ReturnType<typeof getDb>>>;
@@ -384,11 +388,20 @@ export async function updateOrder(ownerId: number, actorUserId: number, orderId:
 
 export async function removeOrder(ownerId: number, actorUserId: number, orderId: number) {
   return lockedOrder(ownerId, orderId, async (tx, order) => {
-    assertEditableOrder(order);
     await tx.delete(orderPhotos).where(eq(orderPhotos.orderId, orderId));
     await tx.delete(orderItems).where(eq(orderItems.orderId, orderId));
     await tx.delete(orders).where(eq(orders.id, orderId));
     await writeAudit(tx, { ownerId, actorUserId, orderId, action: "PEDIDO_EXCLUIDO", details: { number: order.blingOrderNumber } });
+    return { success: true };
+  });
+}
+
+export async function updateOrderItemNote(ownerId: number, actorUserId: number, input: { orderId: number; itemId: number; note: string }) {
+  return lockedOrder(ownerId, input.orderId, async tx => {
+    const [item] = await tx.select().from(orderItems).where(and(eq(orderItems.id, input.itemId), eq(orderItems.orderId, input.orderId))).limit(1);
+    if (!item) throw new Error("Item não encontrado.");
+    await tx.update(orderItems).set({ note: optional(input.note) }).where(eq(orderItems.id, item.id));
+    await writeAudit(tx, { ownerId, actorUserId, orderId: input.orderId, orderItemId: item.id, action: "OBSERVACAO_ITEM_ATUALIZADA", details: { note: optional(input.note), status: item.status } });
     return { success: true };
   });
 }
@@ -424,6 +437,8 @@ export async function markAllItems(ownerId: number, actorUserId: number, orderId
 export async function startSeparation(ownerId: number, actorUserId: number, orderId: number) {
   return lockedOrder(ownerId, orderId, async (tx, order) => {
     if (!["NOVO", "AGUARDANDO_SEPARACAO"].includes(order.status)) throw new Error("A separação deste pedido já foi iniciada.");
+    const items = await tx.select().from(orderItems).where(eq(orderItems.orderId, orderId)).limit(1);
+    if (!items.length) throw new Error("Adicione os produtos ao pedido antes de iniciar a separação.");
     await tx.update(orders).set({ status: "EM_SEPARACAO", responsibleUserId: actorUserId }).where(eq(orders.id, orderId));
     await writeAudit(tx, { ownerId, actorUserId, orderId, action: "SEPARACAO_INICIADA" });
     return { success: true };
@@ -485,7 +500,7 @@ export async function listProducts(ownerId: number, search?: string) {
   const clause = term
     ? and(eq(products.ownerId, ownerId), or(ilike(products.name, `%${term}%`), ilike(products.sku, `%${term}%`))!)
     : eq(products.ownerId, ownerId);
-  return db.select().from(products).where(clause).orderBy(desc(products.createdAt));
+  return db.select().from(products).where(and(clause, eq(products.active, true))).orderBy(desc(products.createdAt));
 }
 
 export async function createProduct(
@@ -494,6 +509,10 @@ export async function createProduct(
   input: { categoryId?: number; sku?: string; externalId?: string; name: string; description?: string; unit: Unit; note?: string },
 ) {
   const db = await requireDb();
+  if (input.categoryId) {
+    const [category] = await db.select().from(categories).where(and(eq(categories.id, input.categoryId), eq(categories.ownerId, ownerId))).limit(1);
+    if (!category) throw new Error("Categoria não encontrada nesta equipe.");
+  }
   const result = await db
     .insert(products)
     .values({
@@ -509,5 +528,32 @@ export async function createProduct(
     .returning();
   await writeAudit(db, { ownerId, actorUserId, action: "PRODUTO_CRIADO", details: { productId: result[0]?.id, name: input.name.trim() } });
   return { id: result[0]?.id };
+}
+
+export async function removeProduct(ownerId: number, actorUserId: number, productId: number) {
+  const db = await requireDb();
+  return db.transaction(async tx => {
+    const [product] = await tx.select().from(products).where(and(eq(products.id, productId), eq(products.ownerId, ownerId))).limit(1).for("update");
+    if (!product) throw new Error("Produto não encontrado nesta equipe.");
+    await tx.update(products).set({ active: false }).where(eq(products.id, productId));
+    await writeAudit(tx, { ownerId, actorUserId, action: "PRODUTO_REMOVIDO", details: { productId, name: product.name } });
+    return { success: true };
+  });
+}
+
+export async function upsertBlingProduct(ownerId: number, actorUserId: number, input: { externalId: string; sku?: string; name: string; unit: Unit }) {
+  const db = await requireDb();
+  return db.transaction(async tx => {
+    // Serialize catalog imports for this workspace, including concurrent browser tabs.
+    await tx.select().from(users).where(eq(users.id, ownerId)).limit(1).for("update");
+    const [existing] = await tx.select().from(products).where(and(eq(products.ownerId, ownerId), eq(products.externalId, input.externalId))).limit(1);
+    if (existing) {
+      await tx.update(products).set({ name: input.name, sku: input.sku || null, unit: input.unit }).where(eq(products.id, existing.id));
+      return { id: existing.id };
+    }
+    const [created] = await tx.insert(products).values({ ownerId, ...input }).returning();
+    await writeAudit(tx, { ownerId, actorUserId, action: "PRODUTO_IMPORTADO", details: { productId: created.id } });
+    return { id: created.id };
+  });
 }
 

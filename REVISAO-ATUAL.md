@@ -1,7 +1,17 @@
-# InjectSolution — publicação de 19/09/2026
+# InjectSolution — atualização de 20/09/2026
 
 Aplicativo: https://injectsolution.vercel.app
 Repositório: https://github.com/profpatiramos/injectsolution
+
+## Ajustes de 20/09
+- Adicionar item abaixo da lista; categoria selecionável sem apagar “Outros”; telefone removido do cadastro e da lista de pedidos.
+- Status no início da linha e check de conferência no final. Observação opcional abaixo de cada item, com salvamento independente e auditoria do status e funcionário. A finalização continua bloqueando alterações.
+- Impressão exclusiva da lista de conferência, incluindo observações e nomes dos responsáveis, sem menus, fotos ou painéis da página.
+- Admin pode excluir pedidos em andamento. Pedidos finalizados continuam preservados. Funcionários e admins podem cadastrar e remover produtos do catálogo sem alterar itens de pedidos existentes.
+- Importação Bling preparada para trazer apenas nome do cliente e número do pedido; itens são montados localmente. Uma nova sincronização preserva pedidos existentes e não recria pedidos excluídos pelo administrador.
+- Sincronização online de produtos disponível em Produtos para o admin, em lotes de 20 com continuação; mantém o ID do Bling, SKU e unidade, preserva categorias e observações locais e não reativa produtos removidos localmente. A integração lê dados do Bling; não exclui nem altera produtos no ERP.
+- 69 testes automatizados, TypeScript e compilação aprovados. Teste com banco real validou catálogo pelo funcionário, observação após conferência, impressão com nome do responsável e exclusão pelo admin após iniciar a separação. Dados sintéticos removidos ao final.
+- Conexão real ao Bling ainda pendente: credenciais OAuth não configuradas e navegador disponível aguardando login na conta da Inject. Não foi realizada sincronização real com o ERP.
 
 ## Entregue
 - Administração de funcionários e administradores, pré-cadastro, links individuais de acesso e revogação com preservação do histórico.
