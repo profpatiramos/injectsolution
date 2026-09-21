@@ -8,6 +8,13 @@
       "when": 1789840489311,
       "tag": "0000_true_jane_foster",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1789952801039,
+      "tag": "0001_harness_measurements",
+      "breakpoints": true
     }
   ]
 }

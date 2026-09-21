@@ -1,4 +1,7 @@
 export const activityLabels: Record<string, string> = {
+  CHICOTE_LINKS_GERADOS: "Links da ficha de chicote gerados",
+  CHICOTE_LINKS_CANCELADOS: "Links da ficha de chicote cancelados",
+  CHICOTE_RESPONDIDO: "Medidas do chicote enviadas pelo cliente",
   CATALOGO_IMPORTADO: "Catálogo inicial importado",
   OBSERVACAO_ITEM_ATUALIZADA: "Observação do item registrada",
   PRODUTO_REMOVIDO: "Produto removido do catálogo",

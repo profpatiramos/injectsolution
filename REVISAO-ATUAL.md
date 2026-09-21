@@ -4,6 +4,7 @@ Aplicativo: https://injectsolution.vercel.app
 Repositório: https://github.com/profpatiramos/injectsolution
 
 ## Ajustes de 20/09
+- Medidas do chicote: modelos de referência Maverick, Jeep e Opala extraídos dos formulários enviados. Admin revisa os padrões por pedido e gera links separados para cliente preencher e fornecedor consultar, válidos por 7 dias. Renovação preserva respostas; substituição de ficha exige confirmação e preserva envios antigos no histórico. Tokens aleatórios armazenados somente como hash, com expiração e revogação no servidor. Impressão exclusiva da ficha via Imprimir / Salvar PDF. 83 testes automatizados e fluxo real com dados sintéticos aprovados; dados de teste removidos.
 - Página Histórico de atividades exclusiva dos administradores, com filtros por funcionário/pedido, ação e período, paginação de 100 registros e atualização a cada 30 segundos. O servidor também omite os logs nos detalhes de pedidos acessados por funcionários. 78 testes aprovados.
 - Adicionar item abaixo da lista; categoria selecionável sem apagar “Outros”; telefone removido do cadastro e da lista de pedidos.
 - Status no início da linha e check de conferência no final. Observação opcional abaixo de cada item, com salvamento independente e auditoria do status e funcionário. A finalização continua bloqueando alterações.

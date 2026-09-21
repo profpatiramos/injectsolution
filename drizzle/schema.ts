@@ -212,3 +212,17 @@ export type OrderStatus = (typeof orderStatuses)[number];
 export type ItemStatus = (typeof itemStatuses)[number];
 export type Unit = (typeof units)[number];
 
+
+export const orderMeasurements = pgTable("order_measurements", {
+  id: serial("id").primaryKey(),
+  orderId: integer("orderId").notNull().unique().references(() => orders.id, { onDelete: "cascade" }),
+  ownerId: integer("ownerId").notNull(),
+  config: json("config").$type<import("../shared/measurements").MeasurementConfig>().notNull(),
+  response: json("response").$type<import("../shared/measurements").MeasurementResponse>(),
+  customerHash: varchar("customerHash", { length: 64 }).unique(),
+  supplierHash: varchar("supplierHash", { length: 64 }).unique(),
+  expiresAt: timestamp("expiresAt", { withTimezone: true }),
+  revision: integer("revision").notNull().default(0),
+  submittedAt: timestamp("submittedAt", { withTimezone: true }),
+  updatedAt: timestamp("updatedAt", { withTimezone: true }).notNull().defaultNow(),
+}).enableRLS();

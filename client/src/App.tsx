@@ -1,3 +1,5 @@
+import PublicMeasurementsPage from "./pages/PublicMeasurementsPage";
+import OrderMeasurementsPage from "./pages/OrderMeasurementsPage";
 import { Toaster } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { Route, Switch } from "wouter";
@@ -25,6 +27,7 @@ const EditOrderRoute = () => <InLayout><OrderFormPage /></InLayout>;
 const DetailOrderRoute = () => <InLayout><OrderDetailPage /></InLayout>;
 const ProductsRoute = () => <InLayout><ProductsPage /></InLayout>;
 const CategoriesRoute = () => <InLayout><CategoriesPage /></InLayout>;
+const MeasurementsRoute = () => <InLayout><OrderMeasurementsPage /></InLayout>;
 const ActivityRoute = () => <InLayout><ActivityPage /></InLayout>;
 const AdminRoute = () => <InLayout><AdminPage /></InLayout>;
 
@@ -37,6 +40,8 @@ function Router() {
     <Route path="/auth/callback" component={AuthCallbackPage} />
     <Route path="/app" component={DashboardRoute} />
     <Route path="/orders/new" component={NewOrderRoute} />
+    <Route path="/medidas" component={PublicMeasurementsPage} />
+    <Route path="/orders/:id/measurements" component={MeasurementsRoute} />
     <Route path="/orders/:id/edit" component={EditOrderRoute} />
     <Route path="/orders/:id" component={DetailOrderRoute} />
     <Route path="/orders" component={OrdersRoute} />

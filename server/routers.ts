@@ -1,3 +1,4 @@
+import { measurementRouter } from "./measurementRouter";
 import { generateAccessLink } from "./supabase";
 import { getUserById } from "./db";
 import { evidenceKinds } from "../shared/evidence";
@@ -84,6 +85,7 @@ function serverError(error: unknown): never {
 }
 
 export const appRouter = router({
+  measurements: measurementRouter,
   system: systemRouter,
   auth: router({
     me: publicProcedure.query(opts => opts.ctx.user),
