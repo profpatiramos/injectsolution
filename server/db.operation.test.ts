@@ -107,9 +107,16 @@ describe("bloqueios nas operações de persistência", () => {
     expect(state.writes.filter(value => value === "delete")).toHaveLength(3);
     expect(state.writes.at(-1)).toMatchObject({ action: "PEDIDO_EXCLUIDO", actorUserId: 11 });
   });
-  it("continua protegendo pedidos finalizados contra exclusão", async () => {
-    state.rows = [[order]];
-    await expect(removeOrder(10, 11, 1)).rejects.toThrow("finalizado");
+  it.each(["PRONTO", "COM_DIVERGENCIA"])("permite excluir pedido finalizado %s com auditoria", async status => {
+    state.rows = [[{ ...order, status, blingOrderNumber: "123" }]];
+    await removeOrder(10, 11, 1);
+    expect(state.locks).toBe(1);
+    expect(state.writes.filter(value => value === "delete")).toHaveLength(3);
+    expect(state.writes.at(-1)).toMatchObject({ action: "PEDIDO_EXCLUIDO", actorUserId: 11, details: { number: "123", previousStatus: status } });
+  });
+  it("não exclui pedido fora da equipe", async () => {
+    state.rows = [[]];
+    await expect(removeOrder(10, 11, 1)).rejects.toThrow("sem permissão");
     expect(state.writes).toEqual([]);
   });
   it("salva observação de item conferido sem alterar quantidades ou status", async () => {

@@ -353,12 +353,12 @@ export async function upsertImportedOrder(ownerId: number, actorUserId: number, 
 type Database = NonNullable<Awaited<ReturnType<typeof getDb>>>;
 type Transaction = Parameters<Parameters<Database["transaction"]>[0]>[0];
 
-async function lockedOrder<T>(ownerId: number, orderId: number, action: (tx: Transaction, order: typeof orders.$inferSelect) => Promise<T>) {
+async function lockedOrder<T>(ownerId: number, orderId: number, action: (tx: Transaction, order: typeof orders.$inferSelect) => Promise<T>, options?: { allowFinalizedDeletion: boolean }) {
   const db = await requireDb();
   return db.transaction(async tx => {
     const [order] = await tx.select().from(orders).where(and(eq(orders.id, orderId), eq(orders.ownerId, ownerId))).limit(1).for("update");
     if (!order) throw new Error("Pedido não encontrado ou sem permissão de acesso.");
-    assertOpenOrder(order);
+    if (!options?.allowFinalizedDeletion) assertOpenOrder(order);
     return action(tx, order);
   });
 }
@@ -391,9 +391,9 @@ export async function removeOrder(ownerId: number, actorUserId: number, orderId:
     await tx.delete(orderPhotos).where(eq(orderPhotos.orderId, orderId));
     await tx.delete(orderItems).where(eq(orderItems.orderId, orderId));
     await tx.delete(orders).where(eq(orders.id, orderId));
-    await writeAudit(tx, { ownerId, actorUserId, orderId, action: "PEDIDO_EXCLUIDO", details: { number: order.blingOrderNumber } });
+    await writeAudit(tx, { ownerId, actorUserId, orderId, action: "PEDIDO_EXCLUIDO", details: { number: order.blingOrderNumber, previousStatus: order.status, finalizedAt: order.finalizedAt } });
     return { success: true };
-  });
+  }, { allowFinalizedDeletion: true });
 }
 
 export async function updateOrderItemNote(ownerId: number, actorUserId: number, input: { orderId: number; itemId: number; note: string }) {
