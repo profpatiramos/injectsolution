@@ -3,7 +3,7 @@ import { normalizeEmail, assertManageableMember } from "./domain/team";
 import type { EvidenceKind } from "../shared/evidence";
 import { workspaceOwner } from "../shared/access";
 import { assertOpenOrder, assertEditableOrder, assertItemTransition } from "../shared/operation";
-import { getTableColumns, isNull, and, desc, eq, ilike, or } from "drizzle-orm";
+import { getTableColumns, isNull, and, desc, eq, ilike, or, gte, lt, sql } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/postgres-js";
 import postgres from "postgres";
 import {
@@ -93,13 +93,18 @@ export async function listWorkspaceMembers(ownerId: number) {
     .orderBy(users.name);
 }
 
-export async function listWorkspaceActivity(ownerId: number) {
+export async function listWorkspaceActivity(ownerId: number, filters?: { page?: number; search?: string; action?: string; from?: string; until?: string }) {
   const db = await requireDb();
   return db.select({ ...getTableColumns(auditLogs), actorName: users.name, orderNumber: orders.blingOrderNumber })
     .from(auditLogs)
     .leftJoin(users, eq(users.id, auditLogs.actorUserId))
     .leftJoin(orders, and(eq(orders.id, auditLogs.orderId), eq(orders.ownerId, ownerId)))
-    .where(eq(auditLogs.ownerId, ownerId)).orderBy(desc(auditLogs.createdAt), desc(auditLogs.id)).limit(100);
+    .where(and(eq(auditLogs.ownerId, ownerId),
+      filters?.action ? eq(auditLogs.action, filters.action) : undefined,
+      filters?.from ? gte(auditLogs.createdAt, new Date(filters.from)) : undefined,
+      filters?.until ? lt(auditLogs.createdAt, new Date(filters.until)) : undefined,
+      filters?.search ? or(ilike(users.name, `%${filters.search}%`), ilike(orders.blingOrderNumber, `%${filters.search}%`), sql`${auditLogs.details}->>'number' ilike ${`%${filters.search}%`}`) : undefined
+    )).orderBy(desc(auditLogs.createdAt), desc(auditLogs.id)).limit(100).offset((filters?.page ?? 0) * 100);
 }
 
 export async function setUserRole(ownerId: number, actorUserId: number, userId: number, role: "user" | "admin" | "separador") {

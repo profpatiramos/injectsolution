@@ -102,7 +102,8 @@ export const appRouter = router({
       .query(({ ctx, input }) => listOrders(workspaceOwner(ctx.user), input)),
     get: separadorProcedure.input(z.object({ id: z.number().int().positive() })).query(async ({ ctx, input }) => {
       try {
-        return await getOrderDetail(workspaceOwner(ctx.user), input.id);
+        const detail = await getOrderDetail(workspaceOwner(ctx.user), input.id);
+        return { ...detail, audit: ctx.user.role === "admin" ? detail.audit : [] };
       } catch (error) {
         return serverError(error);
       }
@@ -210,7 +211,7 @@ export const appRouter = router({
     }),
   }),
   admin: router({
-    activity: adminProcedure.query(({ ctx }) => listWorkspaceActivity(workspaceOwner(ctx.user))),
+    activity: adminProcedure.input(z.object({ page: z.number().int().min(0).max(100000).optional(), search: z.string().trim().max(120).optional(), action: z.string().max(80).optional(), from: z.string().datetime().optional(), until: z.string().datetime().optional() }).optional()).query(({ ctx, input }) => listWorkspaceActivity(workspaceOwner(ctx.user), input)),
     removeMember: adminProcedure.input(z.object({ userId: z.number().int().positive() })).mutation(async ({ ctx, input }) => {
       try { return await removeWorkspaceMember(workspaceOwner(ctx.user), ctx.user.id, input.userId); } catch (error) { return serverError(error); }
     }),

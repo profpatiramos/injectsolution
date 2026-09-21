@@ -5,6 +5,7 @@ import DashboardLayout from "./components/DashboardLayout";
 import ErrorBoundary from "./components/ErrorBoundary";
 import { ThemeProvider } from "./contexts/ThemeContext";
 import CategoriesPage from "./pages/CategoriesPage";
+import ActivityPage from "./pages/ActivityPage";
 import AdminPage from "./pages/AdminPage";
 import DashboardPage from "./pages/DashboardPage";
 import LoginPage from "./pages/LoginPage";
@@ -24,6 +25,7 @@ const EditOrderRoute = () => <InLayout><OrderFormPage /></InLayout>;
 const DetailOrderRoute = () => <InLayout><OrderDetailPage /></InLayout>;
 const ProductsRoute = () => <InLayout><ProductsPage /></InLayout>;
 const CategoriesRoute = () => <InLayout><CategoriesPage /></InLayout>;
+const ActivityRoute = () => <InLayout><ActivityPage /></InLayout>;
 const AdminRoute = () => <InLayout><AdminPage /></InLayout>;
 
 function Router() {
@@ -40,6 +42,7 @@ function Router() {
     <Route path="/orders" component={OrdersRoute} />
     <Route path="/products" component={ProductsRoute} />
     <Route path="/categories" component={CategoriesRoute} />
+    <Route path="/activity" component={ActivityRoute} />
     <Route path="/admin" component={AdminRoute} />
     <Route path="/404" component={NotFound} />
     <Route component={NotFound} />

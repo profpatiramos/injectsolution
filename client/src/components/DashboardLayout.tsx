@@ -3,7 +3,7 @@ import { useAuth } from "@/_core/hooks/useAuth";
 import { BrandMark } from "@/components/BrandMark";
 import { startLogin } from "@/const";
 import { cn } from "@/lib/utils";
-import { Archive, Boxes, LayoutDashboard, LogOut, Menu, PackagePlus, ShieldCheck, X } from "lucide-react";
+import { History, Archive, Boxes, LayoutDashboard, LogOut, Menu, PackagePlus, ShieldCheck, X } from "lucide-react";
 import { useState } from "react";
 import { Link, useLocation } from "wouter";
 
@@ -12,6 +12,7 @@ const menuItems = [
   { icon: Archive, label: "Pedidos", path: "/orders", adminOnly: false },
   { icon: PackagePlus, label: "Novo pedido", path: "/orders/new", adminOnly: true },
   { icon: Boxes, label: "Produtos", path: "/products", adminOnly: false },
+  { icon: History, label: "Histórico de atividades", path: "/activity", adminOnly: true },
   { icon: ShieldCheck, label: "Administração", path: "/admin", adminOnly: true },
 ];
 

@@ -4,6 +4,7 @@ Aplicativo: https://injectsolution.vercel.app
 Repositório: https://github.com/profpatiramos/injectsolution
 
 ## Ajustes de 20/09
+- Página Histórico de atividades exclusiva dos administradores, com filtros por funcionário/pedido, ação e período, paginação de 100 registros e atualização a cada 30 segundos. O servidor também omite os logs nos detalhes de pedidos acessados por funcionários. 78 testes aprovados.
 - Adicionar item abaixo da lista; categoria selecionável sem apagar “Outros”; telefone removido do cadastro e da lista de pedidos.
 - Status no início da linha e check de conferência no final. Observação opcional abaixo de cada item, com salvamento independente e auditoria do status e funcionário. A finalização continua bloqueando alterações.
 - Impressão exclusiva da lista de conferência, incluindo observações e nomes dos responsáveis, sem menus, fotos ou painéis da página.

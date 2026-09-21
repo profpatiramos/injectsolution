@@ -58,7 +58,8 @@ try {
   assert.equal(noted.items[0].note, "Conferência sintética revisada");
   assert.equal(noted.items[0].status, "CONFERIDO");
   assert(noted.items[0].responsibleName);
-  assert(noted.audit.some(event => event.action === "OBSERVACAO_ITEM_ATUALIZADA"));
+  assert.equal(noted.audit.length, 0);
+  assert((await admin.api.orders.get.query({ id: orderId })).audit.some(event => event.action === "OBSERVACAO_ITEM_ATUALIZADA"));
   await assert.rejects(worker.api.orders.finalize.mutate({ orderId, allowPending: false }));
   for (const kind of ["CAIXA_ABERTA", "CAIXA_FECHADA"] as const) await worker.api.photos.upload.mutate({ orderId, kind, filename: "test.png", mimeType: "image/png", base64: "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+aDBkAAAAASUVORK5CYII=" });
   detail = await worker.api.orders.get.query({ id: orderId });

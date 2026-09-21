@@ -9,6 +9,7 @@ vi.mock("./db", () => ({
   getBlingIntegration: vi.fn(),
   saveBlingIntegration: vi.fn(),
   listWorkspaceMembers: vi.fn(),
+  listWorkspaceActivity: vi.fn(),
   setUserRole: vi.fn(),
   createCategory: vi.fn(),
   createOrder: vi.fn(),
@@ -32,7 +33,7 @@ vi.mock("./db", () => ({
 vi.mock("./storage", () => ({ storagePut: vi.fn() }));
 vi.mock("./supabase", () => ({ generateAccessLink: vi.fn() }));
 import { generateAccessLink } from "./supabase";
-import { getUserById, createProduct, removeProduct } from "./db";
+import { listWorkspaceActivity, getUserById, createProduct, removeProduct } from "./db";
 
 import { getOrderDetail, listOrders, startSeparation, assertPhotoUploadAllowed, createOrder } from "./db";
 import { storagePut } from "./storage";
@@ -60,6 +61,23 @@ function contextFor(userId: number, role: "user" | "admin" | "separador" = "user
 
 describe("isolamento por usuário nas rotas de pedidos", () => {
   beforeEach(() => vi.clearAllMocks());
+
+  it("histórico exige administrador e usa apenas a equipe da sessão", async () => {
+    const input = { page: 1, search: "525", action: "PEDIDO_EXCLUIDO" };
+    await appRouter.createCaller(contextFor(41, "admin", 10)).admin.activity(input);
+    expect(listWorkspaceActivity).toHaveBeenCalledWith(10, input);
+    vi.mocked(listWorkspaceActivity).mockClear();
+    await expect(appRouter.createCaller(contextFor(41, "separador", 10)).admin.activity(input)).rejects.toMatchObject({ code: "FORBIDDEN" });
+    expect(listWorkspaceActivity).not.toHaveBeenCalled();
+  });
+
+  it("não envia logs do pedido para funcionários", async () => {
+    vi.mocked(getOrderDetail).mockResolvedValue({ audit: [{ id: 1, action: "PEDIDO_CRIADO" }], items: [], photos: [] } as never);
+    const worker = await appRouter.createCaller(contextFor(41, "separador", 10)).orders.get({ id: 1 });
+    expect(worker.audit).toEqual([]);
+    const admin = await appRouter.createCaller(contextFor(42, "admin", 10)).orders.get({ id: 1 });
+    expect(admin.audit).toHaveLength(1);
+  });
 
   it.each(["admin", "separador"] as const)("permite catálogo na própria equipe: %s", async role => {
     const caller = appRouter.createCaller(contextFor(41, role, 10));
